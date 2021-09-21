@@ -1,7 +1,7 @@
-# Blinkhash Mining
+# Foundation Template
 
-[![Codecov Coverage](https://img.shields.io/codecov/c/github/blinkhash/blinkhash-mining.svg?style=flat-square)](https://codecov.io/gh/blinkhash/blinkhash-mining/)
-[![Foundation CI](https://github.com/blinkhash/blinkhash-mining/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/blinkhash/blinkhash-mining/actions/workflows/build.yml)
+[![Codecov Coverage](https://img.shields.io/codecov/c/github/blinkhash/foundation-template.svg?style=flat-square)](https://codecov.io/gh/blinkhash/foundation-template/)
+[![Foundation CI](https://github.com/blinkhash/foundation-template/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/blinkhash/foundation-template/actions/workflows/build.yml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Discord](https://img.shields.io/discord/738590795384356904)](https://discord.gg/8xtHZFKJQY)
 
