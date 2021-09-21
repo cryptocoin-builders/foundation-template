@@ -1,0 +1,69 @@
+{
+  "name": "blinkhash-mining",
+  "version": "0.0.1",
+  "description": "An extremely efficient, highly scalable, all-in-one, easy to setup cryptocurrency mining pool",
+  "main": "./scripts/init.js",
+  "keywords": [
+    "stratum",
+    "mining",
+    "pool",
+    "server",
+    "poolserver",
+    "bitcoin",
+    "litecoin",
+    "scrypt"
+  ],
+  "homepage": "https://github.com/blinkhash/foundation-server",
+  "bugs": {
+    "url": "https://github.com/blinkhash/foundation-server/issues"
+  },
+  "license": "GPL-2.0",
+  "author": {
+    "name": "Nick Sarris"
+  },
+  "jest": {
+    "verbose": true,
+    "collectCoverage": true,
+    "coveragePathIgnorePatterns": [
+      "configs/",
+      ".mock.js"
+    ]
+  },
+  "scripts": {
+    "start": "nodemon scripts/main.js",
+    "clean": "eslint . --ext .js --ignore-pattern node_modules/",
+    "clean:fix": "eslint . --ext .js --fix --ignore-pattern node_modules/",
+    "test": "jest --coverage"
+  },
+  "contributors": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blinkhash/foundation-server.git"
+  },
+  "dependencies": {
+    "apicache": "^1.5.3",
+    "async": "2.3.0",
+    "bignum": "0.13.1",
+    "foundation-stratum": "0.0.5",
+    "body-parser": "*",
+    "colors": "*",
+    "compression": "*",
+    "cors": "^2.8.5",
+    "dateformat": "4.5.1",
+    "express": "*",
+    "express-rate-limit": "^5.3.0",
+    "nodemon": "*",
+    "redis": "^3.1.1"
+  },
+  "devDependencies": {
+    "codecov": "^3.8.1",
+    "eslint": "^7.23.0",
+    "jest": "^26.6.3",
+    "nock": "^13.0.10",
+    "redis-mock": "^0.56.3"
+  },
+  "engines": {
+    "node": ">=12.16"
+  },
+  "readmeFilename": "README.md"
+}

@@ -1,0 +1,28 @@
+{
+  "family": "CHANGE ME",
+  "executionRoleArn": "CHANGE ME",
+  "containerDefinitions": [
+    {
+      "name": "CHANGE ME",
+      "image": "CHANGE ME:dev-latest",
+      "portMappings": [
+        "CHANGE ME"
+      ],
+      "cpu": "CHANGE ME",
+      "memory": "CHANGE ME",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "CHANGE ME",
+          "awslogs-region": "CHANGE ME",
+          "awslogs-stream-prefix": "ecs-dev"
+        }
+      }
+    }
+  ],
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "CHANGE ME",
+  "memory": "CHANGE ME"
+}
