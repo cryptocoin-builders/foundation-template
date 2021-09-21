@@ -12,6 +12,7 @@ ARG environment
 COPY . .
 COPY --from=deps /node_modules ./node_modules
 COPY --from=deps /package.json ./package.json
+RUN mv /configs/$environment/config.js /configs/main/config.js
 RUN cp /configs/$environment/* /configs/pools/
 
 # List of Ports in Use
