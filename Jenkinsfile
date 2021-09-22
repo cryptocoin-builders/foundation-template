@@ -27,6 +27,10 @@ node {
   def deployDev = false
   def deployProd = false
 
+  // Check Service Deployed
+  def devServiceStatus = "INACTIVE";
+  def prodServiceStatus = "INACTIVE";
+
   // Handle Overridden Behavior
   if (params.overrideDefaults) {
 
@@ -69,13 +73,15 @@ node {
   // Infrastructure Variables (Dev)
   env.ecsFamilyDev = 'CHANGE ME'
   env.ecsClusterDev = 'CHANGE ME'
-  env.ecsDefinitionDev = 'file://aws/task-definition.dev.json'
+  env.ecsTaskDefinitionDev = 'file://aws/task-definition.dev.json'
+  env.ecsServiceDefinitionDev = 'file://aws/service-definition.dev.json'
   env.ecsServiceDev = 'CHANGE ME'
 
   // Infrastructure Variables (Prod)
   env.ecsFamilyProd = 'CHANGE ME'
   env.ecsClusterProd = 'CHANGE ME'
-  env.ecsDefinitionProd = 'file://aws/task-definition.prod.json'
+  env.ecsTaskDefinitionProd = 'file://aws/task-definition.prod.json'
+  env.ecsServiceDefinitionProd = 'file://aws/service-definition.prod.json'
   env.ecsServiceProd = 'CHANGE ME'
 
   // Clone Current Repository
@@ -110,7 +116,7 @@ node {
       echo 'Handling Task Definition Registration ...'
       sh("aws ecs register-task-definition \
         --family ${ env.ecsFamilyDev } \
-        --cli-input-json ${ env.ecsDefinitionDev }")
+        --cli-input-json ${ env.ecsTaskDefinitionDev }")
     }
   }
 
@@ -124,6 +130,72 @@ node {
         | tr ',' ' ' \
         | awk '{ print \$2 }'").trim()
     }
+  }
+
+  // Remove Existing Service (Dev)
+  stage('Dev - Remove Existing Service') {
+    if (deployDev) {
+      devServiceStatus = sh(returnStdout:true, script: "aws ecs describe-services \
+        --cluster ${ env.ecsClusterDev } \
+        --services ${ env.ecsServiceDev } \
+        | jq --raw-output 'select(.services[].status != null ) \
+        | .services[].status'")?.trim()
+      if (devServiceStatus == "ACTIVE") {
+        sh("aws ecs delete-service \
+          --cluster ${ env.ecsClusterDev } \
+          --service ${ env.ecsServiceDev } \
+          --force")
+      }
+    }
+  }
+
+  // Wait Until Service Drains (Dev)
+  stage('Dev - Wait Until Service Drains') {
+    if (deployDev) {
+      attempts = 0
+      while (((devServiceStatus == "ACTIVE") || \
+              (devServiceStatus == "DRAINING")) && \
+              (attempts <= 10)) {
+        devServiceStatus = sh(returnStdout:true, script: "aws ecs describe-services \
+          --cluster ${ env.ecsClusterDev } \
+          --services ${ env.ecsServiceDev } \
+          | jq --raw-output 'select(.services[].status != null ) \
+          | .services[].status'")?.trim()
+        sleep(time: 30, unit: "SECONDS")
+        attempts += 1
+      }
+    }
+  }
+
+  // Deploy Cluster Service (Dev)
+  stage('Dev - Deploy Cluster Service') {
+    if (deployDev && devServiceStatus == "INACTIVE") {
+      echo 'Deploy Updated Service to Cluster ...'
+      sh("aws ecs create-service \
+        --cluster ${ env.ecsClusterDev } \
+        --cli-input-json ${ env.ecsServiceDefinitionDev }")
+    }
+  }
+
+  // Configure Cluster Service for Autoscaling (Dev)
+  stage('Dev - Configure Cluster Service for Autoscaling') {
+    targetPolicy = '{ \
+      "TargetValue": 80.0, \
+      "PredefinedMetricSpecification": { \
+        "PredefinedMetricType": "ECSServiceAverageCPUUtilization" }, \
+      "ScaleOutCooldown": 60, \
+      "ScaleInCooldown": 60 }'
+    sh("aws application-autoscaling register-scalable-target \
+      --service-namespace ecs \
+      --scalable-dimension ecs:service:DesiredCount \
+      --resource-id service/${ env.ecsClusterDev }/${ env.ecsServiceDev } \
+      --min-capacity 1 --max-capacity 1 --region us-east-1")
+    sh("aws application-autoscaling put-scaling-policy \
+      --service-namespace ecs --scalable-dimension ecs:service:DesiredCount \
+      --resource-id service/${ env.ecsClusterDev }/${ env.ecsServiceDev } \
+      --policy-name BlinkhashDevBitcoinScaling \
+      --policy-type TargetTrackingScaling \
+      --target-tracking-scaling-policy-configuration '${ targetPolicy }'")
   }
 
   // Deploy to Cluster Service (Dev)
@@ -144,7 +216,7 @@ node {
       echo 'Handling Task Definition Registration ...'
       sh("aws ecs register-task-definition \
         --family ${ env.ecsFamilyProd } \
-        --cli-input-json ${ env.ecsDefinitionProd }")
+        --cli-input-json ${ env.ecsTaskDefinitionProd }")
     }
   }
 
@@ -158,6 +230,72 @@ node {
         | tr ',' ' ' \
         | awk '{ print \$2 }'").trim()
     }
+  }
+
+  // Remove Existing Service (Prod)
+  stage('Prod - Remove Existing Service') {
+    if (deployProd) {
+      ProdServiceStatus = sh(returnStdout:true, script: "aws ecs describe-services \
+        --cluster ${ env.ecsClusterProd } \
+        --services ${ env.ecsServiceProd } \
+        | jq --raw-output 'select(.services[].status != null ) \
+        | .services[].status'")?.trim()
+      if (ProdServiceStatus == "ACTIVE") {
+        sh("aws ecs delete-service \
+          --cluster ${ env.ecsClusterProd } \
+          --service ${ env.ecsServiceProd } \
+          --force")
+      }
+    }
+  }
+
+  // Wait Until Service Drains (Prod)
+  stage('Prod - Wait Until Service Drains') {
+    if (deployProd) {
+      attempts = 0
+      while (((ProdServiceStatus == "ACTIVE") || \
+              (ProdServiceStatus == "DRAINING")) && \
+              (attempts <= 10)) {
+        ProdServiceStatus = sh(returnStdout:true, script: "aws ecs describe-services \
+          --cluster ${ env.ecsClusterProd } \
+          --services ${ env.ecsServiceProd } \
+          | jq --raw-output 'select(.services[].status != null ) \
+          | .services[].status'")?.trim()
+        sleep(time: 30, unit: "SECONDS")
+        attempts += 1
+      }
+    }
+  }
+
+  // Deploy Cluster Service (Prod)
+  stage('Prod - Deploy Cluster Service') {
+    if (deployProd && prodServiceStatus == "INACTIVE") {
+      echo 'Deploy Updated Service to Cluster ...'
+      sh("aws ecs create-service \
+        --cluster ${ env.ecsClusterProd } \
+        --cli-input-json ${ env.ecsServiceDefinitionProd }")
+    }
+  }
+
+  // Configure Cluster Service for Autoscaling (Prod)
+  stage('Prod - Configure Cluster Service for Autoscaling') {
+    targetPolicy = '{ \
+      "TargetValue": 80.0, \
+      "PredefinedMetricSpecification": { \
+        "PredefinedMetricType": "ECSServiceAverageCPUUtilization" }, \
+      "ScaleOutCooldown": 60, \
+      "ScaleInCooldown": 60 }'
+    sh("aws application-autoscaling register-scalable-target \
+      --service-namespace ecs \
+      --scalable-dimension ecs:service:DesiredCount \
+      --resource-id service/${ env.ecsClusterProd }/${ env.ecsServiceProd } \
+      --min-capacity 1 --max-capacity 1 --region us-east-1")
+    sh("aws application-autoscaling put-scaling-policy \
+      --service-namespace ecs --scalable-dimension ecs:service:DesiredCount \
+      --resource-id service/${ env.ecsClusterProd }/${ env.ecsServiceProd } \
+      --policy-name BlinkhashProdBitcoinScaling \
+      --policy-type TargetTrackingScaling \
+      --target-tracking-scaling-policy-configuration '${ targetPolicy }'")
   }
 
   // Deploy to Cluster Service (Prod)

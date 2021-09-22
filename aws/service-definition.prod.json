@@ -1,0 +1,34 @@
+{
+  "serviceName": "CHANGE ME",
+  "taskDefinition": "CHANGE ME",
+  "loadBalancers": [
+    "CHANGE ME"
+  ],
+  "desiredCount": 1,
+  "capacityProviderStrategy": [
+    "CHANGE ME"
+  ],
+  "cluster": "CHANGE ME",
+  "deploymentConfiguration": {
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 100
+  },
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": [
+        "CHANGE ME"
+      ],
+      "securityGroups": [
+        "CHANGE ME"
+      ],
+      "assignPublicIp": "ENABLED"
+    }
+  },
+  "healthCheckGracePeriodSeconds": 0,
+  "schedulingStrategy": "REPLICA",
+  "tags": [
+    "CHANGE ME"
+  ],
+  "enableECSManagedTags": true,
+  "propagateTags": "SERVICE"
+}
