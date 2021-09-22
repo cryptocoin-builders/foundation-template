@@ -279,23 +279,25 @@ node {
 
   // Configure Cluster Service for Autoscaling (Prod)
   stage('Prod - Configure Cluster Service for Autoscaling') {
-    targetPolicy = '{ \
-      "TargetValue": 80.0, \
-      "PredefinedMetricSpecification": { \
-        "PredefinedMetricType": "ECSServiceAverageCPUUtilization" }, \
-      "ScaleOutCooldown": 60, \
-      "ScaleInCooldown": 60 }'
-    sh("aws application-autoscaling register-scalable-target \
-      --service-namespace ecs \
-      --scalable-dimension ecs:service:DesiredCount \
-      --resource-id service/${ env.ecsClusterProd }/${ env.ecsServiceProd } \
-      --min-capacity 1 --max-capacity 1 --region us-east-1")
-    sh("aws application-autoscaling put-scaling-policy \
-      --service-namespace ecs --scalable-dimension ecs:service:DesiredCount \
-      --resource-id service/${ env.ecsClusterProd }/${ env.ecsServiceProd } \
-      --policy-name BlinkhashProdBitcoinScaling \
-      --policy-type TargetTrackingScaling \
-      --target-tracking-scaling-policy-configuration '${ targetPolicy }'")
+    if (deployProd) {
+      targetPolicy = '{ \
+        "TargetValue": 80.0, \
+        "PredefinedMetricSpecification": { \
+          "PredefinedMetricType": "ECSServiceAverageCPUUtilization" }, \
+        "ScaleOutCooldown": 60, \
+        "ScaleInCooldown": 60 }'
+      sh("aws application-autoscaling register-scalable-target \
+        --service-namespace ecs \
+        --scalable-dimension ecs:service:DesiredCount \
+        --resource-id service/${ env.ecsClusterProd }/${ env.ecsServiceProd } \
+        --min-capacity 1 --max-capacity 1 --region us-east-1")
+      sh("aws application-autoscaling put-scaling-policy \
+        --service-namespace ecs --scalable-dimension ecs:service:DesiredCount \
+        --resource-id service/${ env.ecsClusterProd }/${ env.ecsServiceProd } \
+        --policy-name BlinkhashProdBitcoinScaling \
+        --policy-type TargetTrackingScaling \
+        --target-tracking-scaling-policy-configuration '${ targetPolicy }'")
+    }
   }
 
   // Deploy to Cluster Service (Prod)
