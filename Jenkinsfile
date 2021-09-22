@@ -171,6 +171,7 @@ node {
   stage('Dev - Deploy Cluster Service') {
     if (deployDev && devServiceStatus == "INACTIVE") {
       echo 'Deploy Updated Service to Cluster ...'
+      devServiceStatus = "ACTIVE"
       sh("aws ecs create-service \
         --cluster ${ env.ecsClusterDev } \
         --cli-input-json ${ env.ecsServiceDefinitionDev }")
@@ -179,28 +180,30 @@ node {
 
   // Configure Cluster Service for Autoscaling (Dev)
   stage('Dev - Configure Cluster Service for Autoscaling') {
-    targetPolicy = '{ \
-      "TargetValue": 80.0, \
-      "PredefinedMetricSpecification": { \
-        "PredefinedMetricType": "ECSServiceAverageCPUUtilization" }, \
-      "ScaleOutCooldown": 60, \
-      "ScaleInCooldown": 60 }'
-    sh("aws application-autoscaling register-scalable-target \
-      --service-namespace ecs \
-      --scalable-dimension ecs:service:DesiredCount \
-      --resource-id service/${ env.ecsClusterDev }/${ env.ecsServiceDev } \
-      --min-capacity 1 --max-capacity 1 --region us-east-1")
-    sh("aws application-autoscaling put-scaling-policy \
-      --service-namespace ecs --scalable-dimension ecs:service:DesiredCount \
-      --resource-id service/${ env.ecsClusterDev }/${ env.ecsServiceDev } \
-      --policy-name BlinkhashDevBitcoinScaling \
-      --policy-type TargetTrackingScaling \
-      --target-tracking-scaling-policy-configuration '${ targetPolicy }'")
+    if (deployDev && devServiceStatus == "ACTIVE") {
+      targetPolicy = '{ \
+        "TargetValue": 80.0, \
+        "PredefinedMetricSpecification": { \
+          "PredefinedMetricType": "ECSServiceAverageCPUUtilization" }, \
+        "ScaleOutCooldown": 60, \
+        "ScaleInCooldown": 60 }'
+      sh("aws application-autoscaling register-scalable-target \
+        --service-namespace ecs \
+        --scalable-dimension ecs:service:DesiredCount \
+        --resource-id service/${ env.ecsClusterDev }/${ env.ecsServiceDev } \
+        --min-capacity 1 --max-capacity 1 --region us-east-1")
+      sh("aws application-autoscaling put-scaling-policy \
+        --service-namespace ecs --scalable-dimension ecs:service:DesiredCount \
+        --resource-id service/${ env.ecsClusterDev }/${ env.ecsServiceDev } \
+        --policy-name BlinkhashDevBitcoinScaling \
+        --policy-type TargetTrackingScaling \
+        --target-tracking-scaling-policy-configuration '${ targetPolicy }'")
+    }
   }
 
   // Deploy to Cluster Service (Dev)
   stage('Dev - Deploy to Cluster Service') {
-    if (deployDev) {
+    if (deployDev && devServiceStatus == "ACTIVE") {
       echo 'Deploying to Development Cluster ...'
       sh("aws ecs update-service \
         --cluster ${ env.ecsClusterDev } \
@@ -271,6 +274,7 @@ node {
   stage('Prod - Deploy Cluster Service') {
     if (deployProd && prodServiceStatus == "INACTIVE") {
       echo 'Deploy Updated Service to Cluster ...'
+      prodServiceStatus = "ACTIVE"
       sh("aws ecs create-service \
         --cluster ${ env.ecsClusterProd } \
         --cli-input-json ${ env.ecsServiceDefinitionProd }")
@@ -279,7 +283,7 @@ node {
 
   // Configure Cluster Service for Autoscaling (Prod)
   stage('Prod - Configure Cluster Service for Autoscaling') {
-    if (deployProd) {
+    if (deployProd && prodServiceStatus == "ACTIVE") {
       targetPolicy = '{ \
         "TargetValue": 80.0, \
         "PredefinedMetricSpecification": { \
@@ -302,7 +306,7 @@ node {
 
   // Deploy to Cluster Service (Prod)
   stage('Prod - Deploy to Cluster Service') {
-    if (deployProd) {
+    if (deployProd && prodServiceStatus == "ACTIVE") {
       echo 'Deploying to Quality Assurance Cluster ...'
       sh("aws ecs update-service \
         --cluster ${ env.ecsClusterProd } \
