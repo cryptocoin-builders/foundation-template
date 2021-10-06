@@ -6,14 +6,14 @@ properties([
       description: 'Override defaults - if this is false, all of the following options will do nothing.',
     ),
     booleanParam(
-      name: 'deployImage',
+      name: 'deployDev',
       defaultValue: true,
-      description: 'Deploy Image to ECR - if this is false, the latest image will be used to deploy.',
+      description: 'Deploy template to development environment.',
     ),
-    choice(
-      name: 'deployEnvironment',
-      choices: "none\ndev\nprod\nall",
-      description: "The environment to deploy to - 'all' will deploy to all environments in order.",
+    booleanParam(
+      name: 'deployProd',
+      defaultValue: false,
+      description: 'Deploy template to production environment.',
     ),
   ])
 ])
@@ -23,7 +23,6 @@ node {
   // Initialize Variables
   def dockerImage = null
   def taskRevision = null
-  def deployImage = true
   def deployDev = false
   def deployProd = false
 
@@ -31,37 +30,25 @@ node {
   def devServiceStatus = "INACTIVE";
   def prodServiceStatus = "INACTIVE";
 
-  // Handle Overridden Behavior
-  if (params.overrideDefaults) {
+    // Handle Overridden Behavior
+    if (params.overrideDefaults) {
 
-    // Manage Image Parameter
-    if (params.deployImage) {
-      deployImage = true
+    // Manage Dev Deployment
+    if (params.deployDev) {
+      deployDev = true
     } else {
-      deployImage = false
+      deployDev = false
     }
 
-    // Manage Environment Parameter
-    if (params.deployEnvironment == 'none') {
-      deployDev = false
-      deployProd = false
-    } else if (params.deployEnvironment == 'dev') {
-      deployDev = true
-      deployProd = false
-    } else if (params.deployEnvironment == 'prod') {
-      deployDev = false
-      deployProd = true
-    } else if (params.deployEnvironment == 'all') {
-      deployDev = true
+    // Manage Prod Deployment
+    if (params.deployProd) {
       deployProd = true
     } else {
-      deployDev = false
       deployProd = false
     }
 
   // Handle Default Behavior
   } else {
-    deployImage = true
     deployDev = true
     deployProd = false
   }
@@ -90,22 +77,20 @@ node {
     checkout scm
   }
 
-  // Build Docker Image
-  stage('Build Docker Image') {
-    if (deployImage) {
+  // Build Docker Image (Dev)
+  stage('Dev - Build Docker Image') {
+    if (deployDev) {
       echo 'Building Docker Image ...'
       devDockerImage = docker.build('CHANGE ME', "--build-arg environment=development .")
-      // prodDockerImage = docker.build('CHANGE ME', "--build-arg environment=production .")
     }
   }
 
-  // Push Image to AWS ECR
-  stage('Save Docker Image') {
-    if (deployImage) {
+  // Push Image to AWS ECR (Dev)
+  stage('Dev - Save Docker Image') {
+    if (deployDev) {
       echo 'Pushing Image to Registry ...'
       docker.withRegistry(env.ecrRegistry, env.ecrCredentials) {
         devDockerImage.push('dev-latest')
-        // prodDockerImage.push('prod-latest')
       }
     }
   }
@@ -210,6 +195,25 @@ node {
         --service ${ env.ecsServiceDev } \
         --task-definition ${ env.ecsFamilyDev }:${ taskRevision } \
         --desired-count 1")
+    }
+  }
+
+  // Build Docker Image (Prod)
+  stage('Prod - Build Docker Image') {
+    if (deployProd) {
+      echo 'Building Docker Image ...'
+      prodDockerImage = docker.build('CHANGE ME', "--build-arg environment=production .")
+    }
+  }
+
+  // Push Image to AWS ECR (Prod)
+  stage('Prod -
+  Save Docker Image') {
+    if (deployProd) {
+      echo 'Pushing Image to Registry ...'
+      docker.withRegistry(env.ecrRegistry, env.ecrCredentials) {
+        prodDockerImage.push('prod-latest')
+      }
     }
   }
 
